@@ -74,6 +74,20 @@ async function validateCode() {
             }
         }
 
+        // Highlight PageNumber error
+        const pageNumberError = result.errors.find(e => e.includes('new PageNumber'));
+        if (pageNumberError) {
+            const cursor = cm.getSearchCursor(/new\s+PageNumber\s*\(\s*\)/);
+            while (cursor.findNext()) {
+                const marker = cm.markText(
+                    cursor.from(),
+                    cursor.to(),
+                    { className: "error-line", title: "Ошибка: PageNumber не конструктор" }
+                );
+                errorMarkers.push(marker);
+            }
+        }
+
         const sidebar = document.querySelector('.sidebar');
 
         result.errors.forEach(err => {

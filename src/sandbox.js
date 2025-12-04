@@ -63,9 +63,10 @@ function runUserCode(code, outputDir) {
 
         try {
             vm.createContext(sandbox);
-            vm.runInContext(code, sandbox);
+            const result = vm.runInContext(code, sandbox);
 
-            setTimeout(() => {
+            // Helper to check for file
+            const checkFile = () => {
                 try {
                     const files = fs.readdirSync(outputDir)
                         .filter(f => f.endsWith('.docx') && !f.startsWith('~$'))
@@ -80,7 +81,22 @@ function runUserCode(code, outputDir) {
                 } catch (e) {
                     reject(e);
                 }
-            }, 800);
+            };
+
+            // If result is a Promise, wait for it
+            if (result && typeof result.then === 'function') {
+                result.then(() => {
+                    console.log("[Sandbox] Promise resolved, checking for file...");
+                    setTimeout(checkFile, 100); // Small delay to ensure FS flush
+                }).catch(err => {
+                    console.error("[Sandbox] Promise rejected:", err);
+                    reject(err);
+                });
+            } else {
+                // Fallback for sync code or unreturned promise
+                console.log("[Sandbox] Sync execution or no promise returned, waiting...");
+                setTimeout(checkFile, 2000); // Increased from 800ms to 2000ms
+            }
 
         } catch (err) {
             reject(err);

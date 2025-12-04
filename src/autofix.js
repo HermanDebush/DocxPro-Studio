@@ -60,41 +60,16 @@ function analyzeCode(code) {
         errors.push("Возможно, опечатка: `new document`. Классы docx пишутся с большой буквы: `new Document`.");
     }
 
-    // 6. Проверка на устаревший синтаксис Paragraph
-    if (/new Paragraph\s*\(\s*['"`]/.test(code)) {
-        warnings.push("`new Paragraph('текст')` — это старый синтаксис. Используйте `new Paragraph({ children: [ new TextRun('текст') ] })`.");
-    }
-
-    // 7. Построчный анализ
-    const lines = code.split('\n');
-    lines.forEach((line, index) => {
-        const trimmed = line.trim();
-
-        // А. Поиск одиноких слов (мусор)
-        if (/^[a-zA-Zа-яА-ЯёЁ_$][a-zA-Z0-9а-яА-ЯёЁ_$]*;?$/.test(trimmed)) {
-            const word = trimmed.replace(';', '');
-            const keywords = ['break', 'continue', 'debugger', 'return'];
-            if (!keywords.includes(word)) {
-                warnings.push(`Строка ${index + 1}: "${word}" выглядит как опечатка или лишний код.`);
-            }
-        }
-
-        // Б. Поиск кириллицы вне комментариев и строк
-        // Удаляем комментарии
-        const noComments = line.split('//')[0];
-        // Удаляем строки (простая эвристика: удаляем всё между кавычками)
-        const noStrings = noComments.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '');
-
-        if (/[а-яА-ЯёЁ]/.test(noStrings)) {
-            warnings.push(`Строка ${index + 1}: Обнаружена кириллица вне кавычек. Проверьте имена переменных.`);
-        }
-    });
-
     if (!code.trim()) {
         warnings.push("Код пустой.");
     }
 
     return { errors, warnings };
+}
+
+function fixPageNumber(code) {
+    // Заменяем new PageNumber() на правильную конструкцию
+    return code.replace(/new\s+PageNumber\s*\(\s*\)/g, 'new TextRun({ children: [PageNumber.CURRENT] })');
 }
 
 function fixImports(userCode) {
@@ -128,7 +103,10 @@ function processCode(code) {
     }
 
     const { errors, warnings } = analyzeCode(code);
-    const fixedCode = fixImports(code);
+
+    // Применяем все фиксы
+    let fixedCode = fixImports(code);
+    fixedCode = fixPageNumber(fixedCode);
 
     return {
         fixedCode,
