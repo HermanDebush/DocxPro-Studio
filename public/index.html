@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocxPro Studio | СНН PROJECT</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-layer-group"></i> DocxPro Studio
+            <span style="font-weight:300; opacity:0.7; font-size: 14px; margin-left: 5px;">| СНН PROJECT</span>
+        </div>
+        <div class="toolbar">
+            <button id="btnPaste" class="tool-btn"><i class="fa-regular fa-clipboard"></i> Вставить</button>
+            <label for="fileInput" class="tool-btn"><i class="fa-regular fa-folder-open"></i> Открыть файл</label>
+            <input type="file" id="fileInput" accept=".js,.txt,.md" hidden>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="editor-container" id="dropZone">
+            <textarea id="codeEditor"></textarea>
+
+            <div id="loader" class="loader-overlay" style="display: none;">
+                <div class="spinner"></div>
+                <div id="loaderText">Генерация...</div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h3>Экспорт</h3>
+
+            <div class="control-group">
+                <label>Формат файла</label>
+                <select id="formatSelect">
+                    <option value="docx">📄 Word Document (.docx)</option>
+                    <option value="pdf">📕 PDF Document (.pdf)</option>
+                </select>
+            </div>
+
+            <div class="control-group"
+                style="background: #21262d; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
+                <label style="display:flex; align-items:center; cursor: pointer; margin:0;">
+                    <input type="checkbox" id="autofixCheckbox" checked style="width: auto; margin-right: 10px;">
+                    <span style="font-size: 13px;">Auto-Fix Imports</span>
+                </label>
+                <div style="font-size: 11px; color: #8b949e; margin-top: 5px;">
+                    Автоматически добавляет Header, Footer и другие модули.
+                </div>
+            </div>
+
+            <div class="control-group">
+                <button id="btnRun" class="primary-btn">Сгенерировать</button>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #30363d; margin: 20px 0;">
+
+            <h3>Система</h3>
+            <button id="btnCheck" class="tool-btn" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-stethoscope"></i> Проверить Word
+            </button>
+
+            <div id="diagBox" class="status-box" style="display:none; margin-top: 15px;"></div>
+
+            <div id="saveStatus" style="margin-top: 20px; font-size: 11px; color: #8b949e; text-align: center;">
+                <i class="fa-regular fa-floppy-disk"></i> Автосохранение активно
+            </div>
+
+            <div class="sidebar-footer">
+                <div>© 2025 SNN PROJECT</div>
+                <div style="opacity: 0.6; font-size: 10px;">snnproject.ru | Dev: Herman</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
