@@ -6,7 +6,7 @@
  * Developer: Herman
  * License:   СНН Private License
  * --------------------------------------------------------------------------
- * Description: Entry Point (DEBUG MODE + FILE LOGGING)
+ * Description: Entry Point
  * ==========================================================================
  */
 
@@ -14,7 +14,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// --- CRASH LOGGER ---
 function writeCrashLog(err, type) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const logContent = `
@@ -35,14 +34,12 @@ ${err.stack}
 
   const fileName = `crash_log_${timestamp}.txt`;
 
-  // 1. Try writing to program folder (process.cwd())
   let logPath = path.join(process.cwd(), fileName);
   try {
     fs.writeFileSync(logPath, logContent);
     console.log(`\n[SAVED] Полный лог ошибки сохранен в файл:\n${logPath}`);
   } catch (writeErr) {
     console.error(`\n[WARNING] Не удалось записать лог в папку программы (${writeErr.message})`);
-    // 2. Fallback to Documents
     try {
       const docsDir = path.join(os.homedir(), 'Documents');
       logPath = path.join(docsDir, fileName);
@@ -54,7 +51,6 @@ ${err.stack}
   }
 }
 
-// 1. Global Error Handlers (IMMEDIATE)
 process.on('uncaughtException', (err) => {
   console.error('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
   console.error('!!! КРИТИЧЕСКАЯ ОШИБКА (uncaughtException) !!!');
@@ -80,30 +76,23 @@ process.on('unhandledRejection', (reason, promise) => {
   writeCrashLog(err, 'unhandledRejection');
 });
 
-console.log('[DEBUG] 1. Запуск index.js...');
-console.log('[DEBUG] 2. Модуль os загружен.');
-
 const username = os.userInfo().username;
-console.log(`[DEBUG] 3. Пользователь определен: ${username}`);
 
 let open;
 try {
   open = require('open');
-  console.log('[DEBUG] 4. Модуль open загружен.');
 } catch (e) {
-  console.error('[DEBUG] !!! ОШИБКА загрузки open:', e.message);
+  console.error('!!! ОШИБКА загрузки open:', e.message);
 }
 
 let app;
 try {
-  console.log('[DEBUG] 5. Попытка загрузки ./src/server ...');
   app = require('./src/server');
-  console.log('[DEBUG] 6. Модуль ./src/server успешно загружен.');
 } catch (e) {
   console.error('\n!!! ОШИБКА ПРИ ЗАГРУЗКЕ SERVER.JS !!!');
   console.error('Возможные причины: ошибка в коде server.js или отсутствующий файл.');
   console.error('Детали ошибки:', e);
-  throw e; // Пробрасываем, чтобы сработал uncaughtException
+  throw e;
 }
 
 console.log(`
@@ -125,20 +114,16 @@ console.log(" https://snnproject.ru");
 console.log("========================================");
 console.log(` Welcome, ${username}! System is ready.`);
 
-// Ищем свободный порт
 try {
   const server = app.listen(0, () => {
     const port = server.address().port;
     const url = `http://localhost:${port}`;
-    console.log(`[DEBUG] 7. Сервер запущен на порту ${port}`);
     console.log(`DocxPro запущен на порту ${port}`);
-    console.log(`[DEBUG] 8. Попытка открыть браузер: ${url}`);
 
-    // Delay to ensure server is ready
     setTimeout(() => {
       if (open) {
         open(url).catch(err => {
-          console.error(`[DEBUG] Ошибка open(): ${err.message}`);
+          console.error(`Ошибка open(): ${err.message}`);
           fallbackOpen(url);
         });
       } else {
@@ -147,16 +132,14 @@ try {
     }, 1500);
   });
 } catch (e) {
-  console.error('[DEBUG] !!! ОШИБКА запуска сервера:', e.message);
+  console.error('!!! ОШИБКА запуска сервера:', e.message);
 }
 
 function fallbackOpen(url) {
-  console.log('[DEBUG] Пробую открыть через команду start...');
   require('child_process').exec(`start ${url}`, (err) => {
-    if (err) console.error(`[DEBUG] Не удалось открыть браузер даже через start: ${err.message}`);
+    if (err) console.error(`Не удалось открыть браузер даже через start: ${err.message}`);
   });
 }
 
 // Keep process alive
-console.log('[DEBUG] 9. Ожидание событий...');
 process.stdin.resume();

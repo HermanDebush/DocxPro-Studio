@@ -76,7 +76,6 @@ async function validateCode() {
 
         const sidebar = document.querySelector('.sidebar');
 
-        // ТЕПЕРЬ ПОКАЗЫВАЕМ ВСЕ ОШИБКИ, ВКЛЮЧАЯ СИНТАКСИЧЕСКИЕ
         result.errors.forEach(err => {
             const div = document.createElement('div');
             div.className = 'validation-error';

@@ -24,8 +24,6 @@ const app = express();
 
 app.use(bodyParser.json({ limit: '50mb' }));
 
-// FIX: Use process.cwd() for pkg compatibility
-// Если запуск из EXE (pkg), то __dirname внутри snapshot, поэтому берем process.cwd()
 const publicPath = path.join(process.cwd(), 'public');
 console.log(">>> Public folder path:", publicPath);
 app.use(express.static(publicPath));
@@ -36,7 +34,6 @@ app.post('/api/run', async (req, res) => {
     try {
         let { code, format, autofix } = req.body;
 
-        // Если включен автофикс, прогоняем код через processCode
         if (autofix) {
             console.log(">>> Auto-Fix включен. Исправляю код...");
             const fixResult = processCode(code);
@@ -46,8 +43,6 @@ app.post('/api/run', async (req, res) => {
             }
         }
 
-        // FIX: Don't write to process.cwd() (Program Files is read-only)
-        // Write to My Documents instead
         const outputDir = path.join(os.homedir(), 'Documents', 'DocxPro_Output');
         if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
