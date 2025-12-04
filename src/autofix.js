@@ -1,14 +1,4 @@
-/*
- * ==========================================================================
- * SNN PROJECT | Союз Независимых Наработок
- * ==========================================================================
- * Website:   https://snnproject.ru
- * Developer: Herman
- * License:   SNN Private License
- * --------------------------------------------------------------------------
- * Description: Code Analysis & Autofix
- * ==========================================================================
- */
+
 
 const vm = require('vm');
 
@@ -35,62 +25,105 @@ function analyzeCode(code) {
     const errors = [];
     const warnings = [];
 
-    // 1. Проверка на создание документа
     if (!code.includes('new Document') && !code.includes('docx.Document')) {
         errors.push("Код не создает документ (нет `new Document`).");
     }
 
-    // 2. Проверка на сохранение (Packer)
     if (!code.includes('Packer.toBuffer') && !code.includes('Packer.toBlob')) {
         errors.push("Код не упаковывает документ (нет `Packer.toBuffer`).");
     }
 
-    // 3. Проверка на запись файла
     if (!code.includes('fs.writeFileSync') && !code.includes('fs.writeFile')) {
         errors.push("Код не сохраняет файл на диск (нет `fs.writeFileSync`).");
     }
 
-    function fixImports(userCode) {
-        let fixedCode = userCode;
-
-        if (!fixedCode.includes("require('docx')")) {
-            const imports = `const { ${ALL_MODULES.join(', ')} } = require('docx');\n`;
-            fixedCode = imports + fixedCode;
-        }
-
-        if ((fixedCode.includes('fs.') || fixedCode.includes('writeFileSync')) && !fixedCode.includes("require('fs')")) {
-            fixedCode = `const fs = require('fs');\n` + fixedCode;
-        }
-
-        if ((fixedCode.includes('path.') || fixedCode.includes('join(')) && !fixedCode.includes("require('path')")) {
-            fixedCode = `const path = require('path');\n` + fixedCode;
-        }
-
-        return fixedCode;
+    if (!code.includes("require('docx')") && (code.includes('new Document') || code.includes('docx.Document'))) {
+        warnings.push("Нет импорта `docx`. Он будет добавлен автоматически, но лучше добавить `const { ... } = require('docx');`.");
     }
 
-    function processCode(code) {
-        const syntaxError = checkSyntax(code);
-        if (syntaxError) {
-            return {
-                fixedCode: code,
-                errors: [`Синтаксическая ошибка: ${syntaxError.message}`],
-                warnings: [],
-                syntaxErrorLine: syntaxError.line
-            };
+    if (code.includes('new document')) {
+        errors.push("Возможно, опечатка: `new document`. Классы docx пишутся с большой буквы: `new Document`.");
+    }
+
+    if (/new Paragraph\s*\(\s*['"`]/.test(code)) {
+        warnings.push("`new Paragraph('текст')` — это старый синтаксис. Используйте `new Paragraph({ children: [ new TextRun('текст') ] })`.");
+    }
+
+    const lines = code.split('\n');
+    lines.forEach((line, index) => {
+        const trimmed = line.trim();
+
+        if (/^[a-zA-Zа-яА-ЯёЁ_$][a-zA-Z0-9а-яА-ЯёЁ_$]*;?$/.test(trimmed)) {
+            const word = trimmed.replace(';', '');
+            const keywords = ['break', 'continue', 'debugger', 'return'];
+            if (!keywords.includes(word)) {
+                warnings.push(`Строка ${index + 1}: "${word}" выглядит как опечатка или лишний код.`);
+            }
         }
 
-        const { errors, warnings } = analyzeCode(code);
+        const noComments = line.split('//')[0];
+        const noStrings = noComments.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '');
 
-        // Применяем все фиксы
-        let fixedCode = fixImports(code);
-        fixedCode = fixPageNumber(fixedCode);
+        if (/[а-яА-ЯёЁ]/.test(noStrings)) {
+            warnings.push(`Строка ${index + 1}: Обнаружена кириллица вне кавычек. Проверьте имена переменных.`);
+        }
+    });
 
+    if (/new\s+PageNumber\s*\(\s*\)/.test(code)) {
+        errors.push("КРИТИЧЕСКАЯ ОШИБКА: `new PageNumber()` не работает. Используйте `new TextRun({ children: [PageNumber.CURRENT] })`.");
+    }
+
+    if (!code.trim()) {
+        warnings.push("Код пустой.");
+    }
+
+    return { errors, warnings };
+}
+
+function fixPageNumber(code) {
+    return code.replace(/new\s+PageNumber\s*\(\s*\)/g, 'new TextRun({ children: [PageNumber.CURRENT] })');
+}
+
+function fixImports(userCode) {
+    let fixedCode = userCode;
+
+    if (!fixedCode.includes("require('docx')")) {
+        const imports = `const { ${ALL_MODULES.join(', ')} } = require('docx');\n`;
+        fixedCode = imports + fixedCode;
+    }
+
+    if ((fixedCode.includes('fs.') || fixedCode.includes('writeFileSync')) && !fixedCode.includes("require('fs')")) {
+        fixedCode = `const fs = require('fs');\n` + fixedCode;
+    }
+
+    if ((fixedCode.includes('path.') || fixedCode.includes('join(')) && !fixedCode.includes("require('path')")) {
+        fixedCode = `const path = require('path');\n` + fixedCode;
+    }
+
+    return fixedCode;
+}
+
+function processCode(code) {
+    const syntaxError = checkSyntax(code);
+    if (syntaxError) {
         return {
-            fixedCode,
-            errors,
-            warnings
+            fixedCode: code,
+            errors: [`Синтаксическая ошибка: ${syntaxError.message}`],
+            warnings: [],
+            syntaxErrorLine: syntaxError.line
         };
     }
 
-    module.exports = { processCode, checkSyntax, analyzeCode, fixImports };
+    const { errors, warnings } = analyzeCode(code);
+
+    let fixedCode = fixImports(code);
+    fixedCode = fixPageNumber(fixedCode);
+
+    return {
+        fixedCode,
+        errors,
+        warnings
+    };
+}
+
+module.exports = { processCode, checkSyntax, analyzeCode, fixImports };

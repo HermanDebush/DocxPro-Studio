@@ -1,14 +1,4 @@
-/*
- * ==========================================================================
- * SNN PROJECT | Союз Независимых Наработок
- * ==========================================================================
- * Website:   https://snnproject.ru
- * Developer: Herman
- * License:   SNN Private License
- * --------------------------------------------------------------------------
- * Description: Frontend Logic
- * ==========================================================================
- */
+
 
 console.log("Pro Script v2.0 Loaded");
 
@@ -74,7 +64,6 @@ async function validateCode() {
             }
         }
 
-        // Highlight PageNumber error
         const pageNumberError = result.errors.find(e => e.includes('new PageNumber'));
         if (pageNumberError) {
             const cursor = cm.getSearchCursor(/new\s+PageNumber\s*\(\s*\)/);

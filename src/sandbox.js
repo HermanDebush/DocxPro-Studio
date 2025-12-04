@@ -1,14 +1,4 @@
-/*
- * ==========================================================================
- * SNN PROJECT | Союз Независимых Наработок
- * ==========================================================================
- * Website:   https://snnproject.ru
- * Developer: Herman
- * License:   SNN Private License
- * --------------------------------------------------------------------------
- * Description: VM Sandbox
- * ==========================================================================
- */
+
 
 const vm = require('vm');
 const docx = require('docx');
@@ -32,7 +22,7 @@ function runUserCode(code, outputDir) {
                     return {
                         ...fs,
                         writeFileSync: (filePath, data, options) => {
-                            // Игнорируем путь пользователя, сохраняем в outputDir
+
                             const fileName = path.basename(filePath);
                             const finalPath = path.join(outputDir, fileName);
                             console.log(`[Sandbox] Перенаправление записи: ${filePath} -> ${finalPath}`);
@@ -65,7 +55,6 @@ function runUserCode(code, outputDir) {
             vm.createContext(sandbox);
             const result = vm.runInContext(code, sandbox);
 
-            // Helper to check for file
             const checkFile = () => {
                 try {
                     const files = fs.readdirSync(outputDir)
@@ -83,7 +72,6 @@ function runUserCode(code, outputDir) {
                 }
             };
 
-            // If result is a Promise, wait for it
             if (result && typeof result.then === 'function') {
                 result.then(() => {
                     console.log("[Sandbox] Promise resolved, checking for file...");
@@ -93,7 +81,7 @@ function runUserCode(code, outputDir) {
                     reject(err);
                 });
             } else {
-                // Fallback for sync code or unreturned promise
+
                 console.log("[Sandbox] Sync execution or no promise returned, waiting...");
                 setTimeout(checkFile, 2000); // Increased from 800ms to 2000ms
             }

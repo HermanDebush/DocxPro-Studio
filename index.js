@@ -1,14 +1,4 @@
-/*
- * ==========================================================================
- * СНН PROJECT | Союз Независимых Наработок
- * ==========================================================================
- * Website:   https://snnproject.ru
- * Developer: Herman
- * License:   СНН Private License
- * --------------------------------------------------------------------------
- * Description: Entry Point
- * ==========================================================================
- */
+
 
 const fs = require('fs');
 const path = require('path');
@@ -141,5 +131,4 @@ function fallbackOpen(url) {
   });
 }
 
-// Keep process alive
 process.stdin.resume();
