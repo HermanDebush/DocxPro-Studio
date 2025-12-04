@@ -50,69 +50,47 @@ function analyzeCode(code) {
         errors.push("Код не сохраняет файл на диск (нет `fs.writeFileSync`).");
     }
 
-    // 4. Проверка на импорт docx
-    if (!code.includes("require('docx')") && (code.includes('new Document') || code.includes('docx.Document'))) {
-        warnings.push("Нет импорта `docx`. Он будет добавлен автоматически, но лучше добавить `const { ... } = require('docx');`.");
+    function fixImports(userCode) {
+        let fixedCode = userCode;
+
+        if (!fixedCode.includes("require('docx')")) {
+            const imports = `const { ${ALL_MODULES.join(', ')} } = require('docx');\n`;
+            fixedCode = imports + fixedCode;
+        }
+
+        if ((fixedCode.includes('fs.') || fixedCode.includes('writeFileSync')) && !fixedCode.includes("require('fs')")) {
+            fixedCode = `const fs = require('fs');\n` + fixedCode;
+        }
+
+        if ((fixedCode.includes('path.') || fixedCode.includes('join(')) && !fixedCode.includes("require('path')")) {
+            fixedCode = `const path = require('path');\n` + fixedCode;
+        }
+
+        return fixedCode;
     }
 
-    // 5. Проверка на опечатки (new document вместо new Document)
-    if (code.includes('new document')) {
-        errors.push("Возможно, опечатка: `new document`. Классы docx пишутся с большой буквы: `new Document`.");
-    }
+    function processCode(code) {
+        const syntaxError = checkSyntax(code);
+        if (syntaxError) {
+            return {
+                fixedCode: code,
+                errors: [`Синтаксическая ошибка: ${syntaxError.message}`],
+                warnings: [],
+                syntaxErrorLine: syntaxError.line
+            };
+        }
 
-    if (!code.trim()) {
-        warnings.push("Код пустой.");
-    }
+        const { errors, warnings } = analyzeCode(code);
 
-    return { errors, warnings };
-}
+        // Применяем все фиксы
+        let fixedCode = fixImports(code);
+        fixedCode = fixPageNumber(fixedCode);
 
-function fixPageNumber(code) {
-    // Заменяем new PageNumber() на правильную конструкцию
-    return code.replace(/new\s+PageNumber\s*\(\s*\)/g, 'new TextRun({ children: [PageNumber.CURRENT] })');
-}
-
-function fixImports(userCode) {
-    let fixedCode = userCode;
-
-    if (!fixedCode.includes("require('docx')")) {
-        const imports = `const { ${ALL_MODULES.join(', ')} } = require('docx');\n`;
-        fixedCode = imports + fixedCode;
-    }
-
-    if ((fixedCode.includes('fs.') || fixedCode.includes('writeFileSync')) && !fixedCode.includes("require('fs')")) {
-        fixedCode = `const fs = require('fs');\n` + fixedCode;
-    }
-
-    if ((fixedCode.includes('path.') || fixedCode.includes('join(')) && !fixedCode.includes("require('path')")) {
-        fixedCode = `const path = require('path');\n` + fixedCode;
-    }
-
-    return fixedCode;
-}
-
-function processCode(code) {
-    const syntaxError = checkSyntax(code);
-    if (syntaxError) {
         return {
-            fixedCode: code,
-            errors: [`Синтаксическая ошибка: ${syntaxError.message}`],
-            warnings: [],
-            syntaxErrorLine: syntaxError.line
+            fixedCode,
+            errors,
+            warnings
         };
     }
 
-    const { errors, warnings } = analyzeCode(code);
-
-    // Применяем все фиксы
-    let fixedCode = fixImports(code);
-    fixedCode = fixPageNumber(fixedCode);
-
-    return {
-        fixedCode,
-        errors,
-        warnings
-    };
-}
-
-module.exports = { processCode, checkSyntax, analyzeCode, fixImports };
+    module.exports = { processCode, checkSyntax, analyzeCode, fixImports };
