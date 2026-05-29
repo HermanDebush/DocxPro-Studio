@@ -69,4 +69,4 @@ Copyright (c) 2025 СНН PROJECT
 
 ---
 *Developed by Herman | СНН PROJECT*
-*https://snnproject.ru*
+*https://projectsnn.com*
