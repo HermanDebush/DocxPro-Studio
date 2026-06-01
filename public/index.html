@@ -19,6 +19,17 @@
 
 <body>
 
+    <!-- Напоминание для неофициальных копий (нет лаунчера / запуск из исходника) -->
+    <div id="localModeBanner" class="local-banner" style="display:none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span class="local-banner-text">
+            Локальный режим — автообновления недоступны. Установите
+            «Центр обновлений&nbsp;СНН» для обновлений и поддержки.
+        </span>
+        <a href="https://snnproject.ru" target="_blank" rel="noopener" class="local-banner-btn">Установить</a>
+        <i id="localModeClose" class="fa-solid fa-xmark local-banner-close" title="Скрыть"></i>
+    </div>
+
     <header>
         <div class="logo">
             <i class="fa-solid fa-layer-group"></i> DocxPro Studio

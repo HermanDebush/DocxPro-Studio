@@ -51,9 +51,17 @@ process.on('uncaughtException', (err) => {
   writeCrashLog(err, 'uncaughtException');
 
   console.log('Нажмите любую клавишу для выхода...');
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.on('data', process.exit.bind(process, 1));
+  if (process.stdin.isTTY) {
+    try {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.on('data', process.exit.bind(process, 1));
+    } catch (e) {
+      process.exit(1);
+    }
+  } else {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -105,7 +113,7 @@ console.log("========================================");
 console.log(` Welcome, ${username}! System is ready.`);
 
 try {
-  const server = app.listen(0, () => {
+  const server = app.listen(0, '127.0.0.1', () => {
     const port = server.address().port;
     const url = `http://localhost:${port}`;
     console.log(`DocxPro запущен на порту ${port}`);

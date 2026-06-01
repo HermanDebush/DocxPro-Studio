@@ -8,6 +8,8 @@ const path = require('path');
 function runUserCode(code, outputDir) {
     return new Promise((resolve, reject) => {
 
+        let lastWrittenPath = null;
+
         const docxGlobals = {};
         Object.keys(docx).forEach(key => {
             docxGlobals[key] = docx[key];
@@ -26,6 +28,7 @@ function runUserCode(code, outputDir) {
                             const fileName = path.basename(filePath);
                             const finalPath = path.join(outputDir, fileName);
                             console.log(`[Sandbox] Перенаправление записи: ${filePath} -> ${finalPath}`);
+                            if (fileName.toLowerCase().endsWith('.docx')) lastWrittenPath = finalPath;
                             return fs.writeFileSync(finalPath, data, options);
                         },
                         writeFile: (filePath, data, options, callback) => {
@@ -36,6 +39,7 @@ function runUserCode(code, outputDir) {
                             const fileName = path.basename(filePath);
                             const finalPath = path.join(outputDir, fileName);
                             console.log(`[Sandbox] Перенаправление записи: ${filePath} -> ${finalPath}`);
+                            if (fileName.toLowerCase().endsWith('.docx')) lastWrittenPath = finalPath;
                             return fs.writeFile(finalPath, data, options, callback);
                         }
                     };
@@ -57,6 +61,9 @@ function runUserCode(code, outputDir) {
 
             const checkFile = () => {
                 try {
+                    if (lastWrittenPath && fs.existsSync(lastWrittenPath)) {
+                        return resolve(lastWrittenPath);
+                    }
                     const files = fs.readdirSync(outputDir)
                         .filter(f => f.endsWith('.docx') && !f.startsWith('~$'))
                         .map(name => ({ name, time: fs.statSync(path.join(outputDir, name)).mtime.getTime() }))

@@ -34,6 +34,12 @@ function checkSystem() {
         child.stdout.on('data', (data) => { output += data.toString(); });
         child.stderr.on('data', (data) => { output += data.toString(); });
 
+        child.on('error', (e) => {
+            results.wordStatus = 'FAIL';
+            results.error = "Не удалось запустить PowerShell: " + e.message;
+            resolve(results);
+        });
+
         child.on('close', (code) => {
             if (output.includes("WORD_FOUND")) {
                 results.wordStatus = 'OK';

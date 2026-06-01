@@ -58,6 +58,11 @@ function convertToPdf(docxPath, outputDir) {
             console.error("PS Error:", data.toString());
         });
 
+        child.on('error', (e) => {
+            try { fs.unlinkSync(psPath); } catch (err) {}
+            reject(new Error("Не удалось запустить PowerShell: " + e.message));
+        });
+
         child.on('close', (code) => {
             try { fs.unlinkSync(psPath); } catch (e) { }
 

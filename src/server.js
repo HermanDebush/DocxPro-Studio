@@ -12,11 +12,54 @@ const { processCode } = require('./autofix');
 
 const app = express();
 
+function safeUnlink(p) {
+    try { if (p) fs.unlinkSync(p); } catch (e) {}
+}
+
 app.use(bodyParser.json({ limit: '50mb' }));
 
-const publicPath = path.join(process.cwd(), 'public');
+// Папку интерфейса ищем рядом с exe (в pkg-сборке), а в dev — на уровень выше src/.
+// Раньше путь брался от process.cwd(), из-за чего при запуске через ярлык или
+// лаунчер (с чужой рабочей директорией) интерфейс не находился и приложение
+// «не работало», хотя сервер стартовал.
+const baseDir = process.pkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
+const publicPath = path.join(baseDir, 'public');
 console.log(">>> Public folder path:", publicPath);
 app.use(express.static(publicPath));
+
+// Версия приложения (package.json в pkg-сборке лежит внутри снапшота).
+let APP_VERSION = '0.0.0';
+try { APP_VERSION = require('../package.json').version || APP_VERSION; } catch (e) {}
+
+// Официальная ли это установка (через Центр обновлений СНН).
+// Лаунчер пишет %APPDATA%\SNN\Launcher\installed.json с записью об установленном
+// приложении и путём к exe. Если записи нет либо путь не совпадает с текущим exe
+// (копия с GitHub / ручная установка) — копия считается неофициальной и в UI
+// показывается напоминание про лаунчер.
+function isOfficialInstall() {
+    try {
+        const appdata = process.env.APPDATA;
+        if (!appdata) return false;
+        const p = path.join(appdata, 'SNN', 'Launcher', 'installed.json');
+        if (!fs.existsSync(p)) return false;
+        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+        const rec = data['docxpro-studio'];
+        if (!rec) return false;
+        if (rec.path) {
+            const a = path.normalize(rec.path).toLowerCase();
+            const b = path.normalize(process.execPath).toLowerCase();
+            return a === b;
+        }
+        return true; // запись есть, путь не указан — считаем официальной
+    } catch (e) {
+        return false;
+    }
+}
+
+// Метаданные для фронта: официальность установки и версия.
+app.get('/api/meta', (req, res) => {
+    res.json({ official: isOfficialInstall(), version: APP_VERSION });
+});
 
 app.post('/api/run', async (req, res) => {
     console.log(`>>> ПОЛУЧЕН ЗАПРОС. Формат: ${req.body.format}`);
@@ -47,20 +90,20 @@ app.post('/api/run', async (req, res) => {
             try {
                 const pdfPath = await convertToPdf(docxPath, outputDir);
                 console.log("   PDF готов, отправляю клиенту.");
-                res.download(pdfPath);
+                res.download(pdfPath, () => { safeUnlink(pdfPath); safeUnlink(docxPath); });
             } catch (e) {
                 console.error("!!! ОШИБКА PDF:", e.message);
                 console.log("   Отправляю DOCX вместо PDF.");
-                res.download(docxPath);
+                res.download(docxPath, () => { safeUnlink(docxPath); });
             }
         } else {
             console.log("2. Отправляю DOCX клиенту.");
-            res.download(docxPath);
+            res.download(docxPath, () => { safeUnlink(docxPath); });
         }
 
     } catch (err) {
         console.error("!!! КРИТИЧЕСКАЯ ОШИБКА:", err.message);
-        res.status(500).json({ error: err.message, stack: err.stack });
+        res.status(500).json({ error: err.message });
     }
 });
 

@@ -2,6 +2,23 @@
 
 console.log("Pro Script v2.0 Loaded");
 
+// Проверка официальной установки: если копия неофициальная (нет лаунчера /
+// запуск из исходника) — показываем мягкое напоминание про Центр обновлений СНН.
+(async () => {
+    try {
+        const r = await fetch('/api/meta');
+        const meta = await r.json();
+        if (meta && meta.official === false) {
+            const banner = document.getElementById('localModeBanner');
+            const closeBtn = document.getElementById('localModeClose');
+            if (banner) banner.style.display = 'flex';
+            if (closeBtn) closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+        }
+    } catch (e) {
+        /* эндпоинта нет (старая версия) — молча игнорируем */
+    }
+})();
+
 const btnRun = document.getElementById('btnRun');
 const btnPaste = document.getElementById('btnPaste');
 const fileInput = document.getElementById('fileInput');
@@ -82,14 +99,20 @@ async function validateCode() {
         result.errors.forEach(err => {
             const div = document.createElement('div');
             div.className = 'validation-error';
-            div.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${err}`;
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-circle-exclamation';
+            div.appendChild(icon);
+            div.appendChild(document.createTextNode(' ' + err));
             sidebar.insertBefore(div, saveStatus);
         });
 
         result.warnings.forEach(warn => {
             const div = document.createElement('div');
             div.className = 'validation-warning';
-            div.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${warn}`;
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-triangle-exclamation';
+            div.appendChild(icon);
+            div.appendChild(document.createTextNode(' ' + warn));
             sidebar.insertBefore(div, saveStatus);
         });
 
@@ -158,18 +181,23 @@ if (btnCheck) {
             const response = await fetch('/api/check');
             const data = await response.json();
 
+            const renderDiag = (color, title, detail) => {
+                diagBox.style.borderLeft = "3px solid " + color;
+                diagBox.textContent = '';
+                const strong = document.createElement('strong');
+                strong.style.color = color;
+                strong.textContent = title;
+                const small = document.createElement('small');
+                small.textContent = detail || '';
+                diagBox.appendChild(strong);
+                diagBox.appendChild(document.createElement('br'));
+                diagBox.appendChild(small);
+            };
+
             if (data.wordStatus === 'OK') {
-                diagBox.style.borderLeft = "3px solid #4caf50";
-                diagBox.innerHTML = `
-                    <strong style="color:#4caf50">✅ Word найден!</strong><br>
-                    <small>${data.details}</small>
-                `;
+                renderDiag('#4caf50', '✅ Word найден!', data.details);
             } else {
-                diagBox.style.borderLeft = "3px solid #ff4444";
-                diagBox.innerHTML = `
-                    <strong style="color:#ff4444">❌ Ошибка Word:</strong><br>
-                    <small>${data.error || "Неизвестная ошибка"}</small>
-                `;
+                renderDiag('#ff4444', '❌ Ошибка Word:', data.error || 'Неизвестная ошибка');
             }
         } catch (e) {
             diagBox.innerHTML = "Ошибка связи с сервером.";
