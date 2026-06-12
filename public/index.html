@@ -19,6 +19,23 @@
 
 <body>
 
+    <!-- Экран «Приложение закрыто». Показывается, когда сервер DocxPro перестал
+         отвечать (закрытие из Центра обновлений СНН, краш или ручная остановка).
+         Скрыт по умолчанию, включается из script.js по heartbeat. -->
+    <div id="shutdownOverlay" class="shutdown-overlay" style="display:none;">
+        <div class="shutdown-card">
+            <i class="fa-solid fa-power-off shutdown-icon"></i>
+            <h1>Приложение закрыто</h1>
+            <p>
+                DocxPro Studio остановлен. Можете спокойно закрыть это окно
+                браузера и саму программу.
+            </p>
+            <p class="shutdown-hint">
+                Свернуть приложение в трей можно из «Центра обновлений&nbsp;СНН».
+            </p>
+        </div>
+    </div>
+
     <!-- Напоминание для неофициальных копий (нет лаунчера / запуск из исходника) -->
     <div id="localModeBanner" class="local-banner" style="display:none;">
         <i class="fa-solid fa-triangle-exclamation"></i>

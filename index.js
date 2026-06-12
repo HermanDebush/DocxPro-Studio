@@ -118,6 +118,21 @@ try {
     const url = `http://localhost:${port}`;
     console.log(`DocxPro запущен на порту ${port}`);
 
+    // Системный трей: иконка с меню «Открыть / Выход». Полностью независим от
+    // лаунчера; при любой ошибке просто не появляется — сервер работает дальше.
+    try {
+      const { initTray } = require('./src/tray');
+      initTray({
+        url,
+        onQuit: () => {
+          try { server.close(); } catch (e) {}
+          process.exit(0);
+        },
+      });
+    } catch (e) {
+      console.error('[tray] инициализация не удалась:', e.message);
+    }
+
     setTimeout(() => {
       if (open) {
         open(url).catch(err => {

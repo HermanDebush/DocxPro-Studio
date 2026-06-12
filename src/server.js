@@ -38,6 +38,11 @@ try { APP_VERSION = require('../package.json').version || APP_VERSION; } catch (
 // показывается напоминание про лаунчер.
 function isOfficialInstall() {
     try {
+        // Запуск из исходника (node index.js, не pkg-сборка) — это среда
+        // разработчика, а не распространяемая копия: плашку «локального режима»
+        // показывать незачем, считаем официальной.
+        if (!process.pkg) return true;
+
         const appdata = process.env.APPDATA;
         if (!appdata) return false;
         const p = path.join(appdata, 'SNN', 'Launcher', 'installed.json');
@@ -59,6 +64,13 @@ function isOfficialInstall() {
 // Метаданные для фронта: официальность установки и версия.
 app.get('/api/meta', (req, res) => {
     res.json({ official: isOfficialInstall(), version: APP_VERSION });
+});
+
+// Лёгкий heartbeat. Фронт пингует его раз в пару секунд; как только сервер
+// перестаёт отвечать (приложение закрыто из лаунчера, краш или ручная
+// остановка) — в браузере показывается экран «Приложение закрыто».
+app.get('/api/ping', (req, res) => {
+    res.json({ ok: true });
 });
 
 app.post('/api/run', async (req, res) => {

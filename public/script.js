@@ -4,19 +4,80 @@ console.log("Pro Script v2.0 Loaded");
 
 // Проверка официальной установки: если копия неофициальная (нет лаунчера /
 // запуск из исходника) — показываем мягкое напоминание про Центр обновлений СНН.
-(async () => {
-    try {
-        const r = await fetch('/api/meta');
-        const meta = await r.json();
-        if (meta && meta.official === false) {
-            const banner = document.getElementById('localModeBanner');
-            const closeBtn = document.getElementById('localModeClose');
-            if (banner) banner.style.display = 'flex';
-            if (closeBtn) closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
-        }
-    } catch (e) {
-        /* эндпоинта нет (старая версия) — молча игнорируем */
+// Перепроверяем периодически: статус официальности читается из installed.json
+// на каждый запрос, поэтому если лаунчер поставили/запустили уже ПОСЛЕ старта
+// DocxPro — плашка исчезнет сама, без перезапуска приложения.
+(function initLocalModeBanner() {
+    const banner = document.getElementById('localModeBanner');
+    const closeBtn = document.getElementById('localModeClose');
+    if (!banner) return;
+
+    let dismissed = false; // пользователь закрыл плашку вручную — больше не навязываем
+    const startedAt = Date.now();
+    const GRACE_MS = 6000;  // первые 6 c не паникуем — даём времени обнаружить лаунчер
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            dismissed = true;
+            banner.style.display = 'none';
+        });
     }
+
+    async function refresh() {
+        try {
+            const r = await fetch('/api/meta', { cache: 'no-store' });
+            const meta = await r.json();
+            if (meta && meta.official === false) {
+                // Показываем только если грейс-период истёк (лаунчер мог ещё
+                // стартовать / installed.json дописаться) и юзер не закрывал.
+                if (!dismissed && (Date.now() - startedAt) >= GRACE_MS) {
+                    banner.style.display = 'flex';
+                }
+            } else {
+                // official === true → лаунчер на месте: убираем уведомление.
+                banner.style.display = 'none';
+            }
+        } catch (e) {
+            /* сервер недоступен (эндпоинта нет / закрывается) — не трогаем */
+        }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);  // чаще, чтобы сразу после грейса среагировать
+})();
+
+// Heartbeat: пингуем сервер раз в 2 c. Если он перестал отвечать (приложение
+// закрыли из Центра обновлений СНН, краш или ручная остановка) — после двух
+// подряд неудачных пингов показываем экран «Приложение закрыто». Так юзер
+// понимает, что окно браузера можно закрывать.
+(function startHeartbeat() {
+    const overlay = document.getElementById('shutdownOverlay');
+    if (!overlay) return;
+    let misses = 0;
+    let inflight = false;
+
+    async function ping() {
+        if (inflight) return; // не наслаиваем запросы
+        inflight = true;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 1500);
+        try {
+            const r = await fetch('/api/ping', { cache: 'no-store', signal: ctrl.signal });
+            if (!r.ok) throw new Error('bad status');
+            // сервер жив — сбрасываем счётчик и убираем экран, если он висел
+            // (значит был лишь кратковременный простой, а не закрытие).
+            misses = 0;
+            if (overlay.style.display !== 'none') overlay.style.display = 'none';
+        } catch (e) {
+            // показываем экран только после 2 подряд неудач — чтобы случайная
+            // заминка не давала ложного «Приложение закрыто».
+            if (++misses >= 2) overlay.style.display = 'flex';
+        } finally {
+            clearTimeout(t);
+            inflight = false;
+        }
+    }
+
+    setInterval(ping, 2000);
 })();
 
 const btnRun = document.getElementById('btnRun');
